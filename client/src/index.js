@@ -2,10 +2,12 @@ import 'babel-polyfill'
 import React from 'react'
 import { render } from 'react-dom'
 import { Provider } from 'react-redux'
-import TodoListApp from './components/TodoList/TodoListApp'
-import storeFactory from './store/index'
+
 import styles from './styles/main.css'
 
+import App from './App';
+
+import storeFactory from './store/index'
 import { fetchTodos } from './actions'
 
 window.React = React;
@@ -17,7 +19,7 @@ store_.dispatch(fetchTodos())
 
 render(
   <Provider store={store_}>
-      <TodoListApp />
+      <App/>
   </Provider>,
   document.getElementById("react-container")
 )

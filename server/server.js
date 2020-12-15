@@ -6,22 +6,26 @@ require("dotenv").config();
 
 app = express();
 
+var session = require("express-session");
+var flash = require("connect-flash");
+var bodyParser = require("body-parser");
+var mongoose = require("mongoose");
+var passport = require("passport");
+var BasicStrategy = require("passport-http").BasicStrategy;
+var JwtStrategy = require("passport-jwt").Strategy;
+var ExtractJwt = require("passport-jwt").ExtractJwt;
+
 var todoApi = require("./routs/todos");
 var auth = require("./routs/auth");
-var bodyParser = require("body-parser");
-var expressLayouts = require("express-ejs-layouts");
-var mongoose = require("mongoose");
 
-var userList = require('./user-list');
-var passport = require("passport");
-var LocalStrategy = require("passport-local").Strategy;
+var userList = require("./user-list");
 
 mongoose.connect(process.env.MONGOLAB_URI);
 mongoose.connection.on("error", () => {
   console.error(
     "MongoDB Connection Error. Please make sure that MongoDB is running."
   );
-//   process.exit(1);
+  //   process.exit(1);
 });
 
 const logger = (req, res, next) => {
@@ -29,43 +33,58 @@ const logger = (req, res, next) => {
   next();
 };
 
-// Set Templating Engine
-app.use(expressLayouts);
-app.set("layout", "./layouts/main-layout");
-app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(logger);
-app.use("/auth", auth);
-app.use("/api", todoApi);
 
+app.use(flash());
+app.use(session({ secret: "cats" }));
 app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(
-  new LocalStrategy(function (username, password, done) {
-    var user = userList.find((user) => user.name === username && user.password === password);
+  new BasicStrategy(function (username, password, done) {
+    var user = userList.find(
+      (user) => user.name === username && user.password === password
+    );
 
     if (user) {
-        done(null, user);
+      done(null, { name: user.name });
     } else {
-        done(null, false, { message: "Incorrect username or password." });
+      done(null, false, { message: "Incorrect username or password." });
     }
-    // User.findOne({ username: username }, function (err, user) {
-    //   if (err) {
-    //     return done(err);
-    //   }
-    //   if (!user) {
-    //     return done(null, false, { message: "Incorrect username." });
-    //   }
-    //   if (!user.validPassword(password)) {
-    //     return done(null, false, { message: "Incorrect password." });
-    //   }
-    //   return done(null, user);
-    // });
   })
 );
+
+passport.use(
+  new JwtStrategy(
+    {
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: "your_jwt_secret",
+    },
+    function (jwtPayload, cb) {
+      var user = userList.find((user) => jwtPayload.name === user.name);
+      if (!user) {
+        cb({message: "user not found"})
+      }
+      return cb(null, user)
+    }
+  )
+);
+
+passport.serializeUser(function (user, done) {
+  console.log("serializeUser", user);
+  done(null, user);
+});
+
+passport.deserializeUser(function (user, done) {
+  console.log("deserializeUser", user);
+  done(null, user);
+});
+
+app.use("/auth", auth);
+app.use("/api", passport.authenticate('jwt', {session: false}), todoApi);
 
 const sendHTMLpage = (req, res) => {
   res.status(200).send("Server is works");

@@ -3,7 +3,7 @@ services:
   server:
     container_name: server
     build: ./server
-    # working_dir: /app/server
+    working_dir: /app/server
     # volumes:
     #   - ./server:/app/server
     command: ["ls"]

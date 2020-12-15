@@ -1,22 +1,12 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const passport = require("passport");
+const jwt = require('jsonwebtoken');
 
-router.get('/login', function (req, res) {
-  res.render('login', { title: 'Login' })
-})
-
-router.post('/login', function (req, res) {
-  console.log(req.body)
-
-  passport.authenticate('local', function(err, user, info) {
-    if (err) { return next(err); }
-    if (!user) { return res.redirect('/login'); }
-    req.logIn(user, function(err) {
-      if (err) { return next(err); }
-      return res.redirect('/');
-    });
-  })(req, res, next);
-})
+router.post('/login',
+  passport.authenticate('basic', { session: false }),
+  function({ user }, res) {
+    res.json({token: jwt.sign(user, 'your_jwt_secret')});
+  });
 
 module.exports = router;
