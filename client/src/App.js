@@ -38,6 +38,9 @@ export default function App() {
             <li>
               <Link to="/login">Login</Link>
             </li>
+          <li>
+            <a href="/auth/github">Login whit GitHub</a>
+          </li>
           </ul>
         </nav>
 

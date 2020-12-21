@@ -14,6 +14,7 @@ var passport = require("passport");
 var BasicStrategy = require("passport-http").BasicStrategy;
 var JwtStrategy = require("passport-jwt").Strategy;
 var ExtractJwt = require("passport-jwt").ExtractJwt;
+var GitHubStrategy = require("passport-github2").Strategy;
 
 var todoApi = require("./routs/todos");
 var auth = require("./routs/auth");
@@ -32,7 +33,6 @@ const logger = (req, res, next) => {
   console.log(`${req.method} request for '${req.url}'`);
   next();
 };
-
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -66,9 +66,23 @@ passport.use(
     function (jwtPayload, cb) {
       var user = userList.find((user) => jwtPayload.name === user.name);
       if (!user) {
-        cb({message: "user not found"})
+        cb({ message: "user not found" });
       }
-      return cb(null, user)
+      return cb(null, user);
+    }
+  )
+);
+
+passport.use(
+  new GitHubStrategy(
+    {
+      clientID: "ed639561d9b578ecd1bc",
+      clientSecret: "541cbf1fe2e3f2d09032f7156a5b98470d32fa22",
+      callbackURL: "/auth/github/callback",
+    },
+    function (accessToken, refreshToken, profile, done) {
+      console.log('GitHubStrategy ', profile)
+      done(null, profile);
     }
   )
 );
@@ -84,7 +98,7 @@ passport.deserializeUser(function (user, done) {
 });
 
 app.use("/auth", auth);
-app.use("/api", passport.authenticate('jwt', {session: false}), todoApi);
+app.use("/api", passport.authenticate("jwt", { session: false }), todoApi);
 
 const sendHTMLpage = (req, res) => {
   res.status(200).send("Server is works");
